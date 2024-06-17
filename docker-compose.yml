@@ -1,0 +1,60 @@
+volumes:
+  static_content:
+networks:
+  main:
+  database:
+    driver: 'bridge'
+services:
+  server:
+    container_name: 'server_api'
+    image: api:latest
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    depends_on:
+      - database_mongodb
+      - database_client
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    networks:
+      - main
+      - database
+    links:
+      - database_mongodb
+    volumes:
+      - static_content:/var/lib/docker
+
+  database_mongodb:
+    image: mongo:latest
+    container_name: 'database_mongodb'
+    restart: always
+    ports:
+      - 27017:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DB=kinodev
+    networks:
+      - database
+
+  database_client:
+    image: mongo-express
+    container_name: 'database_client'
+    restart: always
+    ports:
+      - 8081:8081
+    depends_on:
+      - database_mongodb
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://root:password@database_mongodb:27017/
+      - ME_CONFIG_MONGODB_SERVER=database_mongodb
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=root
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=password
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_BASICAUTH_USERNAME=root
+      - ME_CONFIG_BASICAUTH_PASSWORD=password
+      - ME_CONFIG_BASICAUTH=true
+    networks:
+      - database
